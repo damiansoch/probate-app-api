@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'auditlog',
     'core',
     'user',
+    'loan'
 ]
 
 MIDDLEWARE = [

@@ -5,6 +5,8 @@ Tests for models
 from django.test import TestCase
 from django.contrib.auth import get_user_model
 
+from core import models
+
 
 class TestModels(TestCase):
     """Tests for models"""
@@ -47,4 +49,17 @@ class TestModels(TestCase):
         self.assertTrue(user.is_superuser)
         self.assertTrue(user.is_staff)
 
+    # endregion
+
+    # region <Tests of Solicitor model>
+    def test_create_solicitor(self):
+        """Test creating a solicitor"""
+        solicitor = models.Solicitor.objects.create(
+            title="Mr",
+            first_name="Test",
+            last_name="Name",
+            email="test@erxample.com",
+            phone_number="1234567890",
+        )
+        self.assertEqual(str(solicitor), f"{solicitor.title} {solicitor.first_name} {solicitor.last_name}")
     # endregion
