@@ -1,12 +1,15 @@
 """
 Tests for models
 """
+from datetime import datetime
 import random
+from decimal import Decimal
 
 from django.test import TestCase
 from django.contrib.auth import get_user_model
 
 from core import models
+from loan import serializers
 
 
 # region<helper functions>
@@ -94,4 +97,23 @@ class TestModels(TestCase):
             eircode="1234567G",
         )
         self.assertEqual(str(agency), agency.name)
+
+    def test_create_application(self):
+        """Test creating an application"""
+        application_status = models.ApplicationStatus.objects.create(name="Test Status")
+        user = get_user_model().objects.create_user(email="test@example.com", password="testpass123")
+
+        application = models.Application.objects.create(
+            amount=Decimal("350_000"),
+            term=24,
+            user=None,
+            application_status=application_status,
+            agency=None,
+            created_by=user,
+            lead_solicitor=None,
+        )
+
+        self.assertEqual(application_status.name, "Test Status")
+        self.assertEqual(application.amount, Decimal('350000'))
+        self.assertEqual(application.term, 24)
     # endregion

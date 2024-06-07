@@ -1,6 +1,7 @@
 """
 Database models
 """
+from datetime import datetime
 
 from django.db import models
 from django.contrib.auth.models import (
@@ -9,7 +10,12 @@ from django.contrib.auth.models import (
     PermissionsMixin
 )
 
+from django.conf import settings
+
+from django.core.validators import MinValueValidator, MaxValueValidator
+
 from auditlog.registry import auditlog
+from django.db.models import ForeignKey
 
 
 # region <Creating custom user model in django with extra fields name and team>
@@ -84,6 +90,28 @@ class Solicitor(models.Model):
 
     def __str__(self):
         return f"{self.title} {self.first_name} {self.last_name}"
+
+
+class ApplicationStatus(models.Model):
+    """Application status id model"""
+    name = models.CharField(max_length=255)
+
+    def __str__(self):
+        return f"{self.pk}: {self.name}"
+
+
+class Application(models.Model):
+    """Application model"""
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    term = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(36)])
+    user = ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, blank=True,
+                      related_name='assigned_applications_set')
+    application_status = ForeignKey(ApplicationStatus, on_delete=models.PROTECT, null=True, blank=True)
+    agency = ForeignKey(Agency, on_delete=models.PROTECT, null=True, blank=True)
+    created_by = ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, blank=True,
+                            related_name='created_applications_set')
+    date_submitted = models.DateTimeField(auto_now_add=True)
+    lead_solicitor = ForeignKey(Solicitor, on_delete=models.PROTECT, null=True, blank=True)
 
 
 # endregion

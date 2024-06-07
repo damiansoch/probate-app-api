@@ -11,6 +11,7 @@ from loan import views
 router = DefaultRouter()
 router.register('solicitors', views.SolicitorViewSet, basename='solicitor')
 router.register('agencies', views.AgencyViewSet, basename='agency')
+router.register('applications', views.ApplicationViewSet, basename='application')
 
 app_name = 'loan'
 
