@@ -55,6 +55,16 @@ class UserAdmin(BaseUserAdmin):
     )
 
 
+class SolicitorInline(admin.TabularInline):  # you can also use admin.StackedInline
+    model = models.Solicitor
+    extra = 1  # defines the number of extra forms displayed at the bottom of the change list
+
+
+class AgencyAdmin(admin.ModelAdmin):
+    inlines = [SolicitorInline]
+
+
 admin.site.register(models.User, UserAdmin)
 admin.site.register(models.Team)
 admin.site.register(models.Solicitor)
+admin.site.register(models.Agency, AgencyAdmin)

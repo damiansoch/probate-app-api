@@ -58,14 +58,29 @@ class User(AbstractBaseUser, PermissionsMixin):
 
 # endregion
 
-# region <Solicitor model>
+# region < models>
+
+class Agency(models.Model):
+    """Agency model"""
+    name = models.CharField(max_length=255)
+    house_number = models.CharField(max_length=50)
+    street = models.CharField(max_length=255)
+    town = models.CharField(max_length=255)
+    county = models.CharField(max_length=255)
+    eircode = models.CharField(max_length=10)
+
+    def __str__(self):
+        return self.name
+
+
 class Solicitor(models.Model):
     """Solicitor"""
     title = models.CharField(max_length=10)
     first_name = models.CharField(max_length=50)
     last_name = models.CharField(max_length=50)
-    email = models.EmailField(unique=True, max_length=255)
+    email = models.EmailField(unique=False, max_length=255)
     phone_number = models.CharField(max_length=20)
+    agency = models.ForeignKey(Agency, related_name='solicitors', null=True, blank=True, on_delete=models.SET_NULL)
 
     def __str__(self):
         return f"{self.title} {self.first_name} {self.last_name}"
@@ -76,3 +91,4 @@ class Solicitor(models.Model):
 auditlog.register(User)
 auditlog.register(Team)
 auditlog.register(Solicitor)
+auditlog.register(Agency)

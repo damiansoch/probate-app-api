@@ -1,11 +1,29 @@
 """
 Tests for models
 """
+import random
 
 from django.test import TestCase
 from django.contrib.auth import get_user_model
 
 from core import models
+
+
+# region<helper functions>
+def create_agency_model(**params):
+    defaults = {
+        "name": "test agency",
+        "house_number": str(random.randint(1, 200)),
+        "street": "Test Street",
+        "town": "Test Town",
+        "county": "Dublin",
+        "eircode": "D24N1F1",
+    }
+    defaults.update(params)
+    return models.Agency.objects.create(**defaults)
+
+
+# endregion
 
 
 class TestModels(TestCase):
@@ -51,15 +69,29 @@ class TestModels(TestCase):
 
     # endregion
 
-    # region <Tests of Solicitor model>
+    # region <Tests of all models>
     def test_create_solicitor(self):
         """Test creating a solicitor"""
+        agency = create_agency_model()
         solicitor = models.Solicitor.objects.create(
             title="Mr",
             first_name="Test",
             last_name="Name",
             email="test@erxample.com",
             phone_number="1234567890",
+            agency=agency
         )
         self.assertEqual(str(solicitor), f"{solicitor.title} {solicitor.first_name} {solicitor.last_name}")
+
+    def test_create_agency(self):
+        """Test creating an agency"""
+        agency = models.Agency.objects.create(
+            name="Test Agency",
+            house_number=random.randint(1, 200),
+            street="Test Street",
+            town="Test Town",
+            county="Test County",
+            eircode="1234567G",
+        )
+        self.assertEqual(str(agency), agency.name)
     # endregion
