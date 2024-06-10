@@ -8,7 +8,8 @@ from decimal import Decimal
 from django.test import TestCase
 from django.contrib.auth import get_user_model
 
-from core import models
+from core import (models, helper_estate_models)
+
 from loan import serializers
 
 
@@ -116,4 +117,50 @@ class TestModels(TestCase):
         self.assertEqual(application_status.name, "Test Status")
         self.assertEqual(application.amount, Decimal('350000'))
         self.assertEqual(application.term, 24)
+
+    def test_create_estate(self):
+        """
+        Test creating an estate with assets, expenses and disputes
+        and linking them to different helper models
+        """
+        estate = models.Estate.objects.create()
+
+        # Create assets
+        asset1 = models.Asset.objects.create(name="Asset 1", estate=estate)
+        helper_estate_models.RealAndLeaseholdProperty.objects.create(
+            description="Property 1", value=10000, assets=asset1
+        )
+        # Add more Asset related models here...
+
+        asset2 = models.Asset.objects.create(name="Asset 2", estate=estate)
+        helper_estate_models.CarsAndBoats.objects.create(
+            description="Car 1", value=20000, assets=asset2
+        )
+        # Add more Asset related models here...
+
+        # Create expenses
+        expense1 = models.Expense.objects.create(name="Expense 1", estate=estate)
+        helper_estate_models.TaxLiability.objects.create(
+            description="Tax Liability 1", value=1500, expense=expense1
+        )
+        # Add more Expense related models here...
+
+        expense2 = models.Expense.objects.create(name="Expense 2", estate=estate)
+        helper_estate_models.SecuredMortgages.objects.create(
+            description="Mortgage 1", value=75000, expense=expense2
+        )
+        # Add more Expense related models here...
+
+        dispute = models.Dispute.objects.create(description="Dispute 1", estate=estate)
+
+        self.assertEqual(models.Estate.objects.count(), 1)
+        self.assertEqual(models.Asset.objects.count(), 2)
+        self.assertEqual(models.Expense.objects.count(), 2)
+        self.assertEqual(models.Dispute.objects.count(), 1)
+        self.assertEqual(asset1.estate, estate)
+        self.assertEqual(asset2.estate, estate)
+        self.assertEqual(expense1.estate, estate)
+        self.assertEqual(expense2.estate, estate)
+        self.assertEqual(dispute.estate, estate)
+
     # endregion

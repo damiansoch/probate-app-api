@@ -17,6 +17,8 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from auditlog.registry import auditlog
 from django.db.models import ForeignKey
 
+from .helper_estate_models import Asset, Expense, Dispute
+
 
 # region <Creating custom user model in django with extra fields name and team>
 class UserManager(BaseUserManager):
@@ -114,9 +116,15 @@ class Application(models.Model):
     lead_solicitor = ForeignKey(Solicitor, on_delete=models.PROTECT, null=True, blank=True)
 
 
+class Estate(models.Model):
+    # Other Estate properties...
+    pass
+
+
 # endregion
 
 auditlog.register(User)
 auditlog.register(Team)
 auditlog.register(Solicitor)
 auditlog.register(Agency)
+auditlog.register(Estate)

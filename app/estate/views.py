@@ -1,0 +1,3 @@
+"""
+views for Estate Api
+"""
