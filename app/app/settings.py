@@ -42,7 +42,6 @@ INSTALLED_APPS = [
     'core',
     'user',
     'loan',
-    'estate',
 ]
 
 MIDDLEWARE = [

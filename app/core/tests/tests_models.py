@@ -8,7 +8,7 @@ from decimal import Decimal
 from django.test import TestCase
 from django.contrib.auth import get_user_model
 
-from core import (models, helper_estate_models)
+from core import (models)
 
 from loan import serializers
 
@@ -118,49 +118,49 @@ class TestModels(TestCase):
         self.assertEqual(application.amount, Decimal('350000'))
         self.assertEqual(application.term, 24)
 
-    def test_create_estate(self):
-        """
-        Test creating an estate with assets, expenses and disputes
-        and linking them to different helper models
-        """
-        estate = models.Estate.objects.create()
-
-        # Create assets
-        asset1 = models.Asset.objects.create(name="Asset 1", estate=estate)
-        helper_estate_models.RealAndLeaseholdProperty.objects.create(
-            description="Property 1", value=10000, assets=asset1
+    def test_create_estate_with_assets_expenses_and_dispute(self):
+        """Test creating an estate"""
+        application_status = models.ApplicationStatus.objects.create(name="Test Status")
+        agency = create_agency_model()
+        solicitor = models.Solicitor.objects.create(
+            title="Mr",
+            first_name="Test",
+            last_name="Name",
+            email="test@erxample.com",
+            phone_number="1234567890",
+            agency=agency
         )
-        # Add more Asset related models here...
+        application = models.Application.objects.create(
+            amount="350000",
+            term=12,
+            application_status=application_status,
+            agency=agency,
+            lead_solicitor=solicitor,
 
-        asset2 = models.Asset.objects.create(name="Asset 2", estate=estate)
-        helper_estate_models.CarsAndBoats.objects.create(
-            description="Car 1", value=20000, assets=asset2
         )
-        # Add more Asset related models here...
+        estate = models.Estate.objects.create(
+            application=application,
 
-        # Create expenses
-        expense1 = models.Expense.objects.create(name="Expense 1", estate=estate)
-        helper_estate_models.TaxLiability.objects.create(
-            description="Tax Liability 1", value=1500, expense=expense1
         )
-        # Add more Expense related models here...
 
-        expense2 = models.Expense.objects.create(name="Expense 2", estate=estate)
-        helper_estate_models.SecuredMortgages.objects.create(
-            description="Mortgage 1", value=75000, expense=expense2
+        asset = models.Asset.objects.create(
+            description="Test Asset",
+            value=Decimal("100000"),
+            estate=estate
         )
-        # Add more Expense related models here...
+        expenses = models.Expense.objects.create(
+            description="Test Expenses",
+            value=Decimal("5000"),
+            estate=estate
+        )
+        dispute = models.Dispute.objects.create(
+            description="Test Dispute",
+            estate=estate
+        )
 
-        dispute = models.Dispute.objects.create(description="Dispute 1", estate=estate)
-
-        self.assertEqual(models.Estate.objects.count(), 1)
-        self.assertEqual(models.Asset.objects.count(), 2)
-        self.assertEqual(models.Expense.objects.count(), 2)
-        self.assertEqual(models.Dispute.objects.count(), 1)
-        self.assertEqual(asset1.estate, estate)
-        self.assertEqual(asset2.estate, estate)
-        self.assertEqual(expense1.estate, estate)
-        self.assertEqual(expense2.estate, estate)
+        self.assertEqual(estate.application, application)
+        self.assertEqual(asset.estate, estate)
+        self.assertEqual(expenses.estate, estate)
         self.assertEqual(dispute.estate, estate)
 
     # endregion

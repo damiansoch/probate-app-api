@@ -3,7 +3,15 @@ Serializers for loan APIs
 """
 from django.db import transaction
 from rest_framework import serializers
-from core.models import (Solicitor, Agency, ApplicationStatus, Application, User)
+from core.models import (Solicitor,
+                         Agency,
+                         ApplicationStatus,
+                         Application,
+                         User,
+                         Estate,
+                         Asset,
+                         Expense,
+                         Dispute)
 from user.serializers import UserSerializer
 
 
@@ -36,6 +44,64 @@ class AgencySerializer(serializers.ModelSerializer):
         model = Agency
         fields = '__all__'
         read_only_fields = ('id',)
+
+
+class AssetSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Asset
+        fields = '__all__'
+        read_only_fields = ('id',)
+
+
+class ExpensesSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Expense
+        fields = '__all__'
+        read_only_fields = ('id',)
+
+
+class DisputeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Dispute
+        fields = '__all__'
+        read_only_fields = ('id',)
+
+
+class EstateSerializer(serializers.ModelSerializer):
+    asset_set = AssetSerializer(many=True)
+    expense_set = ExpensesSerializer(many=True)
+    dispute_set = DisputeSerializer(many=True)
+
+    class Meta:
+        model = Estate
+        fields = ['id', 'application', 'asset_set', 'expense_set', 'dispute_set']
+        read_only_fields = ('id',)
+
+    def validate(self, attrs):
+        try:
+            serializers.ModelSerializer.validate(self, attrs)
+        except serializers.ValidationError as e:
+            print(e.args)
+            raise e
+        return attrs
+
+    def create(self, validated_data):
+        assets_data = validated_data.pop('asset_set')
+        expenses_data = validated_data.pop('expense_set')
+        disputes_data = validated_data.pop('dispute_set')
+
+        estate = Estate.objects.create(**validated_data)
+
+        for asset_data in assets_data:
+            Asset.objects.create(estate=estate, **asset_data)
+
+        for expense_data in expenses_data:
+            Expense.objects.create(estate=estate, **expense_data)
+
+        for dispute_data in disputes_data:
+            Dispute.objects.create(estate=estate, **dispute_data)
+
+        return estate
 
 
 class ApplicationSerializer(serializers.ModelSerializer):

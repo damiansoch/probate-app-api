@@ -17,8 +17,6 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from auditlog.registry import auditlog
 from django.db.models import ForeignKey
 
-from .helper_estate_models import Asset, Expense, Dispute
-
 
 # region <Creating custom user model in django with extra fields name and team>
 class UserManager(BaseUserManager):
@@ -115,10 +113,38 @@ class Application(models.Model):
     date_submitted = models.DateTimeField(auto_now_add=True)
     lead_solicitor = ForeignKey(Solicitor, on_delete=models.PROTECT, null=True, blank=True)
 
+    def __str__(self):
+        return f"ID: {self.pk}"
+
 
 class Estate(models.Model):
-    # Other Estate properties...
-    pass
+    """Estate model"""
+    application = ForeignKey(Application, on_delete=models.PROTECT, null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.id}"
+
+
+class Asset(models.Model):
+    """Asset model"""
+    section = models.CharField(max_length=255, null=True, blank=True, default=None)
+    title = models.CharField(max_length=255, null=True, blank=True, default=None)
+    description = models.TextField()
+    value = models.DecimalField(max_digits=10, decimal_places=2)
+    estate = ForeignKey(Estate, on_delete=models.CASCADE, null=True, blank=True)
+
+
+class Expense(models.Model):
+    section = models.CharField(max_length=255, null=True, blank=True, default=None)
+    title = models.CharField(max_length=255, null=True, blank=True, default=None)
+    description = models.TextField()
+    value = models.DecimalField(max_digits=10, decimal_places=2)
+    estate = ForeignKey(Estate, on_delete=models.CASCADE, null=True, blank=True)
+
+
+class Dispute(models.Model):
+    description = models.TextField()
+    estate = ForeignKey(Estate, on_delete=models.CASCADE, null=True, blank=True)
 
 
 # endregion
@@ -127,4 +153,7 @@ auditlog.register(User)
 auditlog.register(Team)
 auditlog.register(Solicitor)
 auditlog.register(Agency)
+auditlog.register(Asset)
+auditlog.register(Expense)
+auditlog.register(Dispute)
 auditlog.register(Estate)

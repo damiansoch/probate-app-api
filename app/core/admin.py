@@ -5,6 +5,7 @@ Django admin customization.
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django import forms
+from django.utils.html import format_html_join
 
 from core import models
 
@@ -64,10 +65,30 @@ class AgencyAdmin(admin.ModelAdmin):
     inlines = [SolicitorInline]
 
 
+class AssetInline(admin.StackedInline):
+    model = models.Asset
+    extra = 0
+
+
+class ExpensesInline(admin.StackedInline):
+    model = models.Expense
+    extra = 0
+
+
+class DisputeInline(admin.StackedInline):
+    model = models.Dispute
+    extra = 0
+
+
+@admin.register(models.Estate)
+class EstateAdmin(admin.ModelAdmin):
+    search_fields = ['application__id']
+    inlines = (AssetInline, ExpensesInline, DisputeInline)
+
+
 admin.site.register(models.User, UserAdmin)
 admin.site.register(models.Team)
 admin.site.register(models.Solicitor)
 admin.site.register(models.Agency, AgencyAdmin)
 admin.site.register(models.ApplicationStatus)
 admin.site.register(models.Application)
-admin.site.register(models.Estate)
