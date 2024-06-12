@@ -86,7 +86,7 @@ class Solicitor(models.Model):
     last_name = models.CharField(max_length=50)
     email = models.EmailField(unique=False, max_length=255)
     phone_number = models.CharField(max_length=20)
-    agency = models.ForeignKey(Agency, related_name='solicitors', null=True, blank=True, on_delete=models.CASCADE)
+    agency = models.ForeignKey(Agency, related_name='solicitors', on_delete=models.CASCADE)
 
     def __str__(self):
         return f"{self.title} {self.first_name} {self.last_name}"
