@@ -8,14 +8,14 @@ from rest_framework.settings import api_settings
 
 from core.models import User
 from user.serializers import (UserSerializer,
-                              AuthTokenSerializer
+                              AuthTokenSerializer, UserListSerializer
                               )
 
 
 class UserList(generics.ListAPIView):
     """View for listing all users in the system"""
     queryset = User.objects.all()
-    serializer_class = UserSerializer
+    serializer_class = UserListSerializer
     authentication_classes = (authentication.TokenAuthentication,)
     permission_classes = (permissions.IsAuthenticated,)
 

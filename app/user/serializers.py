@@ -12,6 +12,15 @@ def get_default_team():
     return default_team
 
 
+class UserListSerializer(serializers.ModelSerializer):
+    """Serializer for listing users, returns only id and email fields"""
+
+    class Meta:
+        model = get_user_model()
+        fields = ['id', 'email']
+        read_only_fields = ['id', 'email']
+
+
 class UserSerializer(serializers.ModelSerializer):
     """Serializer for the User model"""
 
@@ -21,7 +30,7 @@ class UserSerializer(serializers.ModelSerializer):
         model = get_user_model()
         fields = ['id', 'email', 'password', 'name', 'team', 'is_active', 'is_staff', 'is_superuser']
         extra_kwargs = {'password': {'write_only': True, 'min_length': 5}}
-        read_only_fields = ('is_active', 'is_staff', 'is_superuser', 'team')
+        read_only_fields = ('id', 'is_active', 'is_staff', 'is_superuser', 'team')
 
     def create(self, validated_data):
         """Create a new user with encrypted password and return it"""
