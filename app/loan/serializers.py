@@ -105,7 +105,8 @@ class EstateSerializer(serializers.ModelSerializer):
 
 class ApplicationSerializer(serializers.ModelSerializer):
     user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), required=False, default=None)
-    created_by = UserSerializer(read_only=True)
+    created_by = serializers.SerializerMethodField()
+    last_modified_by = serializers.SerializerMethodField()
     agency = serializers.PrimaryKeyRelatedField(queryset=Agency.objects.all())
     application_status = serializers.PrimaryKeyRelatedField(queryset=ApplicationStatus.objects.all())
     lead_solicitor = serializers.PrimaryKeyRelatedField(queryset=Solicitor.objects.all())
@@ -113,9 +114,10 @@ class ApplicationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Application
-        fields = ['id', 'amount', 'term', 'user', 'application_status', 'created_by', 'agency', 'lead_solicitor',
+        fields = ['id', 'amount', 'term', 'user', 'application_status', 'created_by', "last_modified_by", 'agency',
+                  'lead_solicitor',
                   'estate']
-        read_only_fields = ('id', 'created_by', 'date_submitted', 'estate')
+        read_only_fields = ('id', 'created_by', 'last_modified_by', 'date_submitted', 'estate')
 
     @transaction.atomic
     def create(self, validated_data):
@@ -131,14 +133,6 @@ class ApplicationSerializer(serializers.ModelSerializer):
 
     @transaction.atomic
     def update(self, instance, validated_data):
-        user_data = validated_data.pop('user', None)
-
-        # Fetch 'user' data and update
-        if user_data:
-            user = instance.user
-            for attr, value in user_data.items():
-                setattr(user, attr, value)
-            user.save()
 
         # Update 'agency' and 'application_status' with given IDs
         if 'agency' in validated_data:
@@ -156,8 +150,6 @@ class ApplicationSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         representation = super().to_representation(instance)
         estate = Estate.objects.filter(application=instance)
-        # make sure it matches your related_name setting in the estate ForeignKey in your model,
-        # if it's not specified, you can access it by lower cased, plural form of the model by default.
 
         if estate.exists():
             representation['estate'] = EstateSerializer(estate.first()).data
@@ -165,6 +157,16 @@ class ApplicationSerializer(serializers.ModelSerializer):
             representation['estate'] = None
 
         return representation
+
+    def get_created_by(self, obj):
+        if obj.created_by:
+            return obj.created_by.email
+        return None
+
+    def get_last_modified_by(self, obj):
+        if obj.last_updated_by:
+            return obj.last_updated_by.email
+        return None
 
 
 class ApplicationDetailSerializer(ApplicationSerializer):

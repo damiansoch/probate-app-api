@@ -110,7 +110,8 @@ class Application(models.Model):
     agency = ForeignKey(Agency, on_delete=models.PROTECT, null=True, blank=True)
     created_by = ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, blank=True,
                             related_name='created_applications_set')
-   
+    last_updated_by = ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, blank=True,
+                                 related_name='updated_applications_set')
     date_submitted = models.DateTimeField(auto_now_add=True)
     lead_solicitor = ForeignKey(Solicitor, on_delete=models.PROTECT, null=True, blank=True)
 

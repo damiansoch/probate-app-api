@@ -64,6 +64,11 @@ class ApplicationViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         """Create a new application."""
         serializer.save(created_by=self.request.user)
+        serializer.save(last_updated_by=self.request.user)
+
+    def perform_update(self, serializer):
+        """Update an existing application."""
+        serializer.save(last_updated_by=self.request.user)
 
 
 class EstateViewSet(mixins.CreateModelMixin,
