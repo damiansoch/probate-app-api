@@ -119,7 +119,7 @@ class Application(models.Model):
 
 class Estate(models.Model):
     """Estate model"""
-    application = ForeignKey(Application, on_delete=models.PROTECT, null=True, blank=True)
+    application = ForeignKey(Application, on_delete=models.CASCADE, null=True, blank=True)
 
     def __str__(self):
         return f"{self.id}"
