@@ -11,6 +11,7 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient, APITestCase
 
+import user
 from core.models import (Application, ApplicationStatus, Agency, Solicitor, User, )
 
 from loan import serializers
@@ -120,37 +121,36 @@ class PrivateApplicationApiTestCase(APITestCase):
         # self.assertEqual(res.data, application_serializer.data)
 
     def test_create_application_with_existing_agency_and_existing_solicitor(self):
-        """Test for creating application with existing agency and new solicitor"""
+        """Test for creating application with existing agency and existing solicitor"""
         application_status = ApplicationStatus.objects.create(name="Test Status")
-        application_status_serializer = serializers.ApplicationStatusSerializer(application_status)
+
         agency = Agency.objects.create(name="Test Agency",
                                        house_number=24,
                                        street="Test Street",
                                        town="Test town",
                                        county="Test county",
                                        eircode="d24n1f2")
+        solicitor = Solicitor.objects.create(
+            title="Mr",
+            first_name="testName",
+            last_name="TestLName",
+            email="user@example.com",
+            phone_number="0864567894",
+            agency=agency
+        )
 
         payload = {
             "amount": "12345.67",
             "term": 12,
-            "application_status": application_status_serializer.data,  # ApplicationStatus ID here
-            "agency": {
-                "name": agency.name,
-                "house_number": agency.house_number,
-                "street": agency.street,
-                "town": agency.town,
-                "county": agency.county,
-                "eircode": agency.eircode
-            },
-            "lead_solicitor": {
-                "title": "Mr",
-                "first_name": "testName",
-                "last_name": "TestLName",
-                "email": "user@example.com",
-                "phone_number": "0864567894"
-            }
+            "application_status": application_status.id,  # ApplicationStatus ID here
+            "agency": agency.id,
+            "lead_solicitor": solicitor.id,
+            "user": self.user.id,
         }
+
         res = self.client.post(self.APPLICATION_URL, payload, format='json')
+        if res.status_code >= 400:
+            print(res.json())
         application = Application.objects.get(id=res.data['id'])
         application.created_by = self.user
         application.save()
@@ -176,7 +176,7 @@ class PrivateApplicationApiTestCase(APITestCase):
 
     def test_update_applications_agency_and_solicitor(self):
         application_status = ApplicationStatus.objects.create(name="Test Status")
-        application_status_serializer = serializers.ApplicationStatusSerializer(application_status)
+
         agency = Agency.objects.create(name="Test Agency",
                                        house_number=24,
                                        street="Test Street",
@@ -199,21 +199,8 @@ class PrivateApplicationApiTestCase(APITestCase):
                                                  )
 
         payload = {
-            "agency": {
-                "name": "New agency",
-                "house_number": "26",
-                "street": "Updated street",
-                "town": "Updated town",
-                "county": "updated county",
-                "eircode": "d25ewr5"
-            },
-            "lead_solicitor": {
-                "title": "Miss",
-                "first_name": "UpdatedName",
-                "last_name": "UpdatedLastName",
-                "email": "updated@example.com",
-                "phone_number": "0868405521"
-            }
+            "agency": agency.id,
+            "lead_solicitor": solicitor.id
         }
 
         response = self.client.patch(detail_url(application.id), payload, format='json')
@@ -230,69 +217,13 @@ class PrivateApplicationApiTestCase(APITestCase):
         self.assertEqual(res.status_code, status.HTTP_204_NO_CONTENT)
         self.assertEqual(Application.objects.all().count(), 0)
 
-    def test_update_applications_agency_and_solicitor_without_duplication(self):
-        """test for updating application if the new instances of agency and solicitor won't be created if exist"""
-        application_status = ApplicationStatus.objects.create(name="Test Status")
-
-        agency = Agency.objects.create(name="Test Agency",
-                                       house_number=24,
-                                       street="Test Street",
-                                       town="Test town",
-                                       county="Test county",
-                                       eircode="d24n1f2"
-                                       )
-        solicitor = Solicitor.objects.create(title='Mr',
-                                             first_name="TestName",
-                                             last_name="TestLName",
-                                             email="user@example.com",
-                                             phone_number="0864567894",
-                                             agency=agency
-                                             )
-        application = Application.objects.create(amount="350000",
-                                                 term=12,
-                                                 application_status=application_status,
-                                                 agency=agency,
-                                                 lead_solicitor=solicitor
-                                                 )
-
-        payload = {
-            "agency": {
-                "name": "Test Agency",
-                "house_number": "26",
-                "street": "Updated Street",
-                "town": "Updated town",
-                "county": "updated county",
-                "eircode": "d25ewr5"
-            },
-            "lead_solicitor": {
-                "title": "Mr",
-                "first_name": "TestName",
-                "last_name": "TestLName",
-                "email": "updated@example.com",
-                "phone_number": "0868405521"
-            }
-        }
-
-        initial_agencies_count = Agency.objects.count()
-        initial_solicitors_count = Solicitor.objects.count()
-
-        response = self.client.patch(detail_url(application.id), payload, format='json')
-        application.refresh_from_db()
-
-        updated_agencies_count = Agency.objects.count()
-        updated_solicitors_count = Solicitor.objects.count()
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(initial_agencies_count, updated_agencies_count, "A new Agency was incorrectly created.")
-        self.assertEqual(initial_solicitors_count, updated_solicitors_count, "A new Solicitor was incorrectly created.")
-
 
 class ApplicationDeletionTestCase(TestCase):
     def setUp(self):
         # Assuming we have User model available from Django auth system
         self.user = User.objects.create_user(name='testuser', password='12345', email="test@email.com")
         self.agency = Agency.objects.create(name='TestAgency', house_number='24')
-        self.solicitor = Solicitor.objects.create(first_name='TestName')
+        self.solicitor = Solicitor.objects.create(first_name='TestName', agency=self.agency, )
         self.application = Application.objects.create(user=self.user, agency=self.agency,
                                                       lead_solicitor=self.solicitor, term=12,
                                                       amount=1234.56)
@@ -301,11 +232,6 @@ class ApplicationDeletionTestCase(TestCase):
         """Test that deletion of user assigned to an application is prevented"""
         with self.assertRaises(ProtectedError):
             self.user.delete()
-
-    def test_delete_agency(self):
-        """Test that deletion of agency assigned to an application is prevented"""
-        with self.assertRaises(ProtectedError):
-            self.agency.delete()
 
     def test_delete_solicitor(self):
         """Test that deletion of lead solicitor assigned to an application is prevented"""

@@ -76,7 +76,7 @@ class Agency(models.Model):
     eircode = models.CharField(max_length=10)
 
     def __str__(self):
-        return self.name
+        return f"{self.id}: {self.name}"
 
 
 class Solicitor(models.Model):
@@ -89,7 +89,7 @@ class Solicitor(models.Model):
     agency = models.ForeignKey(Agency, related_name='solicitors', on_delete=models.CASCADE)
 
     def __str__(self):
-        return f"{self.title} {self.first_name} {self.last_name}"
+        return f"{self.id}: {self.title} {self.first_name} {self.last_name}"
 
 
 class ApplicationStatus(models.Model):
@@ -110,6 +110,7 @@ class Application(models.Model):
     agency = ForeignKey(Agency, on_delete=models.PROTECT, null=True, blank=True)
     created_by = ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, blank=True,
                             related_name='created_applications_set')
+   
     date_submitted = models.DateTimeField(auto_now_add=True)
     lead_solicitor = ForeignKey(Solicitor, on_delete=models.PROTECT, null=True, blank=True)
 

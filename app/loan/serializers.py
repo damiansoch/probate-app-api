@@ -22,7 +22,7 @@ class AgencyNameSerializer(serializers.ModelSerializer):
 
 
 class SolicitorSerializer(serializers.ModelSerializer):
-    agency = AgencyNameSerializer(read_only=True)
+    agency = serializers.PrimaryKeyRelatedField(queryset=Agency.objects.all())
 
     class Meta:
         model = Solicitor
@@ -50,21 +50,21 @@ class AssetSerializer(serializers.ModelSerializer):
     class Meta:
         model = Asset
         fields = '__all__'
-        read_only_fields = ('id',)
+        read_only_fields = ('id', 'estate')
 
 
 class ExpensesSerializer(serializers.ModelSerializer):
     class Meta:
         model = Expense
         fields = '__all__'
-        read_only_fields = ('id',)
+        read_only_fields = ('id', 'estate')
 
 
 class DisputeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Dispute
         fields = '__all__'
-        read_only_fields = ('id',)
+        read_only_fields = ('id', 'estate')
 
 
 class EstateSerializer(serializers.ModelSerializer):
@@ -76,14 +76,6 @@ class EstateSerializer(serializers.ModelSerializer):
         model = Estate
         fields = ['id', 'application', 'asset_set', 'expense_set', 'dispute_set']
         read_only_fields = ('id',)
-
-    def validate(self, attrs):
-        try:
-            serializers.ModelSerializer.validate(self, attrs)
-        except serializers.ValidationError as e:
-            print(e.args)
-            raise e
-        return attrs
 
     def create(self, validated_data):
         assets_data = validated_data.pop('asset_set')
@@ -100,83 +92,79 @@ class EstateSerializer(serializers.ModelSerializer):
 
         for dispute_data in disputes_data:
             Dispute.objects.create(estate=estate, **dispute_data)
-
         return estate
+
+    def validate(self, attrs):
+        try:
+            serializers.ModelSerializer.validate(self, attrs)
+        except serializers.ValidationError as e:
+            print(e.args)
+            raise e
+        return attrs
 
 
 class ApplicationSerializer(serializers.ModelSerializer):
-    user = UserSerializer(required=False, allow_null=True)
+    user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), required=False, default=None)
     created_by = UserSerializer(read_only=True)
-    agency = AgencySerializer(required=True)
-    application_status = ApplicationStatusSerializer(required=True)
-    lead_solicitor = SolicitorSerializer(required=True)
+    agency = serializers.PrimaryKeyRelatedField(queryset=Agency.objects.all())
+    application_status = serializers.PrimaryKeyRelatedField(queryset=ApplicationStatus.objects.all())
+    lead_solicitor = serializers.PrimaryKeyRelatedField(queryset=Solicitor.objects.all())
+    estate = EstateSerializer(read_only=True)
 
     class Meta:
         model = Application
-        fields = ['id', 'amount', 'term', 'user', 'application_status', 'created_by', 'agency', 'lead_solicitor']
-        read_only_fields = ('id', 'created_by', 'date_submitted')
+        fields = ['id', 'amount', 'term', 'user', 'application_status', 'created_by', 'agency', 'lead_solicitor',
+                  'estate']
+        read_only_fields = ('id', 'created_by', 'date_submitted', 'estate')
 
     @transaction.atomic
     def create(self, validated_data):
-        user_data = validated_data.pop('user', None)
-        agency_data = validated_data.pop('agency')
-        lead_solicitor_data = validated_data.pop('lead_solicitor')
-        application_status_data = validated_data.pop('application_status')
-
-        user = None
-        if user_data:
-            user, _ = User.objects.get_or_create(defaults=user_data, username=user_data['username'])
-        agency, _ = Agency.objects.get_or_create(defaults=agency_data, name=agency_data['name'])
-        lead_solicitor, _ = Solicitor.objects.get_or_create(defaults=lead_solicitor_data,
-                                                            first_name=lead_solicitor_data['first_name'],
-                                                            last_name=lead_solicitor_data['last_name'])
-        application_status, _ = ApplicationStatus.objects.get_or_create(defaults=application_status_data,
-                                                                        name=application_status_data['name'])
-
-        # Check if the lead_solicitor belongs to agency
-        if lead_solicitor not in agency.solicitors.all():
-            # Add lead_solicitor to agency
-            agency.solicitors.add(lead_solicitor)
+        user = validated_data.pop('user', None)
+        agency = validated_data.pop('agency', None)
+        lead_solicitor = validated_data.pop('lead_solicitor')
+        application_status_data = validated_data.pop('application_status', None)
 
         application = Application.objects.create(user=user, agency=agency, lead_solicitor=lead_solicitor,
-                                                 application_status=application_status, **validated_data)
+                                                 application_status=application_status_data, **validated_data)
 
         return application
 
     @transaction.atomic
     def update(self, instance, validated_data):
         user_data = validated_data.pop('user', None)
-        agency_data = validated_data.pop('agency', None)
-        lead_solicitor_data = validated_data.pop('lead_solicitor', None)
-        application_status_data = validated_data.pop('application_status', None)
 
+        # Fetch 'user' data and update
         if user_data:
             user = instance.user
             for attr, value in user_data.items():
                 setattr(user, attr, value)
             user.save()
 
-        if agency_data:
-            agency = instance.agency
-            for attr, value in agency_data.items():
-                setattr(agency, attr, value)
-            agency.save()
+        # Update 'agency' and 'application_status' with given IDs
+        if 'agency' in validated_data:
+            instance.agency_id = validated_data.pop('agency')
+        if 'application_status' in validated_data:
+            instance.application_status_id = validated_data.pop('application_status')
 
-            if lead_solicitor_data:
-                lead_solicitor = instance.lead_solicitor
-                if lead_solicitor not in agency.solicitors.all():
-                    agency.solicitors.add(lead_solicitor)
-                for attr, value in lead_solicitor_data.items():
-                    setattr(lead_solicitor, attr, value)
-                lead_solicitor.save()
+        # Update remaining validated data
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
 
-        if application_status_data:
-            application_status = instance.application_status
-            for attr, value in application_status_data.items():
-                setattr(application_status, attr, value)
-            application_status.save()
+        instance.save()
+        return instance
 
-        return super().update(instance, validated_data)
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        estate = Estate.objects.filter(application=instance)
+        # make sure it matches your related_name setting in the estate ForeignKey in your model,
+        # if it's not specified, you can access it by lower cased, plural form of the model by default.
+
+        if estate.exists():
+            representation['estate'] = EstateSerializer(estate.first()).data
+        else:
+            representation['estate'] = None
+
+        return representation
 
 
 class ApplicationDetailSerializer(ApplicationSerializer):

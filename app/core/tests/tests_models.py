@@ -85,7 +85,8 @@ class TestModels(TestCase):
             phone_number="1234567890",
             agency=agency
         )
-        self.assertEqual(str(solicitor), f"{solicitor.title} {solicitor.first_name} {solicitor.last_name}")
+        self.assertEqual(str(solicitor),
+                         f"{solicitor.id}: {solicitor.title} {solicitor.first_name} {solicitor.last_name}")
 
     def test_create_agency(self):
         """Test creating an agency"""
@@ -97,7 +98,7 @@ class TestModels(TestCase):
             county="Test County",
             eircode="1234567G",
         )
-        self.assertEqual(str(agency), agency.name)
+        self.assertEqual(str(agency), f"{agency.id}: {agency.name}")
 
     def test_create_application(self):
         """Test creating an application"""

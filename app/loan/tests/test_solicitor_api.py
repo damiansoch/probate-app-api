@@ -39,12 +39,14 @@ def create_agency_model(**params):
 
 def create_solicitor(**kwargs):
     """creates a new solicitor"""
+    agency = create_agency_model()
     defaults = {
         "title": "Miss",
         "first_name": "Test",
         "last_name": "Solicitor",
         "email": "test@example.com",
-        "phone_number": "0868455579"
+        "phone_number": "0868455579",
+        "agency": agency,
     }
     defaults.update(kwargs)
     return Solicitor.objects.create(**defaults)
@@ -85,7 +87,7 @@ class PrivateSolicitorAPITestCase(APITestCase):
         self.assertEqual(response.data, serializer.data)
 
     def test_create_solicitor_without_agency(self):
-        """test creating a solicitor with an agency"""
+        """test creating a solicitor create solicitor without agency returns error"""
 
         solicitor_data = {
             "title": "Mr",
@@ -96,13 +98,8 @@ class PrivateSolicitorAPITestCase(APITestCase):
         }
         response = self.client.post(self.SOLICITOR_URL, solicitor_data, format='json')
 
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED,
-                         f'Expected status code {status.HTTP_201_CREATED}, but got {response.status_code} with response {response.data}')
-        self.assertEqual(response.data['title'], solicitor_data['title'])
-        self.assertEqual(response.data['first_name'], solicitor_data['first_name'])
-        self.assertEqual(response.data['last_name'], solicitor_data['last_name'])
-        self.assertEqual(response.data['email'], solicitor_data['email'])
-        self.assertEqual(response.data['phone_number'], solicitor_data['phone_number'])
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST,
+                         f'Expected status code {status.HTTP_400_BAD_REQUEST}, but got {response.status_code} with response {response.data}')
 
     def test_delete_solicitor(self):
         """Test deleting a solicitor"""
@@ -123,12 +120,14 @@ class PrivateSolicitorAPITestCase(APITestCase):
     def test_full_update_solicitor(self):
         """Test updating a solicitor"""
         solicitor = create_solicitor()
+        agency = create_agency_model()
         new_data = {
             "title": "Mrs",
             "first_name": "Jane",
             "last_name": "Smith",
             "email": "jane.smith@example.com",
             "phone_number": "9876543210",
+            "agency": agency.id,
         }
         response = self.client.put(reverse('loan:solicitor-detail', args=[solicitor.id]), new_data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
