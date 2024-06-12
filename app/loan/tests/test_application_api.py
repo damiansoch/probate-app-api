@@ -119,37 +119,7 @@ class PrivateApplicationApiTestCase(APITestCase):
         # application_serializer = serializers.ApplicationDetailSerializer(application)
         # self.assertEqual(res.data, application_serializer.data)
 
-    def test_create_application_with_new_agency_and_solicitor(self):
-        """Test for creating application with a new agency and solicitor"""
-        application_status = ApplicationStatus.objects.create(name="Test Status")
-        application_status_serializer = serializers.ApplicationStatusSerializer(application_status)
-        payload = {
-            "amount": "12345.67",
-            "term": 12,
-            "application_status": application_status_serializer.data,  # ApplicationStatus ID here
-            "agency": {
-                "name": "Test Agency",
-                "house_number": 24,
-                "street": "Test Street",
-                "town": "Test town",
-                "county": "Test county",
-                "eircode": "d24n1f2"
-            },
-            "lead_solicitor": {
-                "title": "Mr",
-                "first_name": "testName",
-                "last_name": "TestLName",
-                "email": "user@example.com",
-                "phone_number": "0864567894"
-            }
-        }
-        res = self.client.post(self.APPLICATION_URL, payload, format='json')
-
-        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
-        application_serializer = serializers.ApplicationDetailSerializer(Application.objects.get(id=res.data['id']))
-        self.assertEqual(res.data, application_serializer.data)
-
-    def test_create_application_with_existing_agency_but_new_solicitor(self):
+    def test_create_application_with_existing_agency_and_existing_solicitor(self):
         """Test for creating application with existing agency and new solicitor"""
         application_status = ApplicationStatus.objects.create(name="Test Status")
         application_status_serializer = serializers.ApplicationStatusSerializer(application_status)
@@ -159,6 +129,7 @@ class PrivateApplicationApiTestCase(APITestCase):
                                        town="Test town",
                                        county="Test county",
                                        eircode="d24n1f2")
+
         payload = {
             "amount": "12345.67",
             "term": 12,
